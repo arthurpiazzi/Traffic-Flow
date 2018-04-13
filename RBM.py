@@ -78,7 +78,7 @@ class RBM(Base):
             #For each epoch
             for epoch in range(self.epochs):
                 #For each step/batch
-                for start, end in zip(range(0, len(X), self.batchsize),range(self.batchsize,len(X), self.batchsize)):
+                for start, end in zip(range(0, X.shape[0], self.batchsize),range(self.batchsize, X.shape[0], self.batchsize)):
                     batch = X[start:end]
                     #Update the rates
                     cur_w = sess.run(update_w, feed_dict={v0: batch, _w: prv_w, _hb: prv_hb, _vb: prv_vb})
@@ -97,13 +97,14 @@ class RBM(Base):
                 	self.hb_best = prv_hb
                 	self.vb_best = prv_vb
                 	star = '*'
+                	print('Epoch: {}, reconstruction error: {}, best error: {} at epoch: {} {}'.format(epoch, error, error_best, epoch_best, star))
+
                 else :  
                 	patience += 1
                 	star = ''
                 	if patience >= 15:
                 		break
 
-                print('Epoch: {}, reconstruction error: {}, best error: {} at epoch: {} {}'.format(epoch, error, error_best, epoch_best, star))
             self.w = prv_w
             self.hb = prv_hb
             self.vb = prv_vb
