@@ -18,9 +18,9 @@ def get_second_last_out(model, x):
 	# output in test mode = 0
 	return get_out([x, 0])[0]
 
-class System_3(DBN_System_2):
+class System_4(DBN_System_2):
 	def __init__(self, name = None, par_1 = {'iter': [150, 150, 150], 'n_units': [250, 200, 100]}, par_2= {'iter': [150, 150, 150], 'n_units': [50, 40, 35]}, par_3 = {'iter': [150, 150, 150], 'n_units': [250, 200, 100]}):
-		super(System_3, self).__init__(name, par_1 , par_2, par_3)
+		super(System_4, self).__init__(name, par_1 , par_2, par_3)
 
 	def train_greed(self, X_traffic, X_weather, Y_traffic, X_traffic_test = None, X_weather_test = None, Y_traffic_test = None, n_epoch = 1000, dropout = 0.1, batch = 100, path = None):
 		print("____Training Greed")
@@ -82,7 +82,7 @@ class System_3(DBN_System_2):
 		else:
 			print("____Training unsurpevised")
 			out_1 = self.dbn_1.fit(X_traffic, transform = True, save=False)
-			out_2 = self.dbn_2.fit(X_wheater, transform = True, save=False)
+			out_2 = self.dbn_2.fit(X_weather, transform = True, save=False)
 
 			input_3 = tf.concat([out_1, out_2], axis = 1)
 			with tf.Session() as sess:
@@ -117,8 +117,12 @@ if __name__ == '__main__':
 	assert x_train.shape[0] == x_train_weather.shape[0]
 	assert x_test.shape[0] == x_test_weather.shape[0]
 
-	model = System_3(name= 'System_3')
+	model = System_4(name= 'System_4')
 
 	print("____ Training model")
-	model.train_unsurpevised(x_train, x_train_weather, y_train, y_train_weather, x_test, x_test_weather, y_test, y_test_weather, load=False)
+	try:
+		model.train_unsurpevised(x_train, x_train_weather, y_train, y_train_weather, x_test, x_test_weather, y_test, y_test_weather, load=True)
+	except:
+		model.train_unsurpevised(x_train, x_train_weather, y_train, y_train_weather, x_test, x_test_weather, y_test, y_test_weather, load=False)
+
 	model.train_greed(x_train, x_train_weather, y_train, x_test, x_test_weather, y_test)
