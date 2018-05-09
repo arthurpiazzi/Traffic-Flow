@@ -6,8 +6,9 @@ from keras.models import Sequential
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 
 from datetime import datetime
-from misc import coeff_determination
-
+from sklearn.metrics import r2_score
+import pandas as pd
+from teste import perturbation_rank_system
 
 class DBN_System_2(DBN):
 	
@@ -68,12 +69,26 @@ class DBN_System_2(DBN):
 		check_pointer = ModelCheckpoint(filepath=path, save_best_only=True)
 		monitor = EarlyStopping(monitor='val_loss', patience = 15, min_delta = 1e-5, verbose = 2)
 
-		model.compile(loss='mean_squared_error', optimizer='nadam', metrics =['mae', 'mape', coeff_determination])
+		model.compile(loss='mean_squared_error', optimizer='nadam', metrics =['mae', 'mape'])
 		model.fit([X_traffic, X_weather], Y_traffic, validation_data=([X_traffic_test, X_weather_test], Y_traffic_test), callbacks=[monitor, check_pointer], batch_size=32, epochs=1000, verbose=2)
 		model.load_weights(path)
 
-		mse, mae, mape, r2 = model.evaluate([X_traffic, X_weather], Y_traffic)
-		mse_t, mae_t, mape_t, r2_t = model.evaluate([X_traffic_test, X_weather_test], Y_traffic_test)
+		result = perturbation_rank_system(model, X_traffic_test.values, X_weather_test.values, Y_traffic_test.values, names=list(range(X_traffic.shape[1]+X_weather.shape[1])), regression = True)
+
+
+		mse, mae, mape = model.evaluate([X_traffic, X_weather], Y_traffic)
+		r2 = r2_score(Y_traffic, model.predict([X_traffic, X_weather]))
+		mse_t, mae_t, mape_t = model.evaluate([X_traffic_test, X_weather_test], Y_traffic_test)
+		r2_t = r2_score(Y_traffic_test, model.predict([X_traffic_test, X_weather_test]))
+
+		try:
+			df_result = pd.read_csv('result/system_2.csv')
+			df_result.append(pd.DataFrame([mse, mae, mape, r2, mse_t, mae_t, mape_t, r2_t, result.error.mean(), result.error_mae.mean(), result.error_r2.mean()], columns = ['mse', 'mae', 'mape', 'r2', 'mse_t', 'mae_t', 'mape_t', 'r2_t', 'pertubation_mse', 'pertubation_mae', 'pertubation_r2']))
+		except FileNotFoundError:
+			df_result = pd.DataFrame([mse, mae, mape, r2, mse_t, mae_t, mape_t, r2_t, result.error, result.error_mae, result.error_r2], columns = ['mse', 'mae', 'mape', 'r2', 'mse_t', 'mae_t', 'mape_t', 'r2_t', 'pertubation_mse', 'pertubation_mae', 'pertubation_r2'])
+
+		df_result.to_csv('result/system_2.csv')
+
 		log_msg = 'Execution on {}: \n\n \
 						Results: \n\n \
 						Training set\n \
@@ -97,6 +112,6 @@ if __name__ == '__main__':
 	from teste import run
 	print("____ Creating model")
 	model = DBN_System_2(name='TREINA_AS_3')
-
-	cross(model)
+	for _ in range(10)
+		run(model)
 

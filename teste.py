@@ -1,4 +1,143 @@
-def run(model):
+import numpy as np
+from sklearn import metrics
+import pandas as pd
+from tqdm import tqdm
+
+def perturbation_rank_essamble(model, x, x_weather, y, names, regression):
+	errors = []
+	errors_mae =[]
+	errors_r2 = []
+	time_steps = 20
+
+	for i in tqdm(range(x.shape[1] + x_weather.shape[1])):
+		
+		if i < x.shape[1]:
+			hold = np.array(x[:, i])
+			np.random.shuffle(x[:, i])
+			x_test = x.reshape(-1, time_steps, int(x.shape[1]/time_steps))
+		else:
+			hold = np.array(x_weather[:, i - x.shape[1]])
+			np.random.shuffle(x_weather[:, i - x.shape[1]])
+
+
+		pred = model.predict([x, x_weather, x_test])
+		error_mean = metrics.mean_squared_error(y, pred)
+		error_mae = metrics.mean_absolute_error(y, pred)
+		error_r2 = metrics.r2_score(y, pred)
+
+
+		errors.append(error_mean)
+		errors_mae.append(error_mae)
+		errors_r2.append(error_r2)
+		if i < x.shape[1]:
+			x[:, i] = hold
+		else:
+			x_weather[:, i - x.shape[1]] = hold
+
+
+
+
+	max_error = np.max(errors)
+	importance = [e / max_error for e in errors]
+
+	data = {'name': names, 'error': errors, 'error_mae': errors_mae, 'error_r2': errors_r2,'importance': importance}
+	result = pd.DataFrame(data, columns=['name', 'error', 'error_mae', 'error_r2', 'importance'])
+	result.sort_values(by=['importance'], ascending=[0], inplace=True)
+	result.reset_index(inplace=True, drop=True)
+	print(result.mean())
+	return result
+
+
+def perturbation_rank_system(model, x, x_weather, y, names, regression):
+	errors = []
+	errors_mae =[]
+	errors_r2 = []
+	time_steps = 20
+
+	for i in tqdm(range(x.shape[1] + x_weather.shape[1])):
+		
+		if i < x.shape[1]:
+			hold = np.array(x[:, i])
+			np.random.shuffle(x[:, i])
+		else:
+			hold = np.array(x_weather[:, i - x.shape[1]])
+			np.random.shuffle(x_weather[:, i - x.shape[1]])
+
+
+		pred = model.predict([x, x_weather])
+		error_mean = metrics.mean_squared_error(y, pred)
+		error_mae = metrics.mean_absolute_error(y, pred)
+		error_r2 = metrics.r2_score(y, pred)
+
+
+		errors.append(error_mean)
+		errors_mae.append(error_mae)
+		errors_r2.append(error_r2)
+		if i < x.shape[1]:
+			x[:, i] = hold
+		else:
+			x_weather[:, i - x.shape[1]] = hold
+
+
+
+
+	max_error = np.max(errors)
+	importance = [e / max_error for e in errors]
+
+	data = {'name': names, 'error': errors, 'error_mae': errors_mae, 'error_r2': errors_r2,'importance': importance}
+	result = pd.DataFrame(data, columns=['name', 'error', 'error_mae', 'error_r2', 'importance'])
+	result.sort_values(by=['importance'], ascending=[0], inplace=True)
+	result.reset_index(inplace=True, drop=True)
+	print(result.mean())
+	return result
+
+def perturbation_rank_lstm(model, x, y, names, regression):
+	errors = []
+
+	time_steps = 20
+
+	for i in tqdm(range(x.shape[1] + x_weather.shape[1])):
+		if i < x.shape[1]:
+			hold = np.array(x[:, i])
+			np.random.shuffle(x[:, i])
+			x_test = x.reshape(-1, time_steps, int(x.shape[1]/time_steps))
+		else:
+			hold = np.array(x_weather[:, i - x.shape[1]])
+			np.random.shuffle(x_weather[:, i - x.shape[1]])
+
+
+		if regression:
+			pred = model.predict(x_test)
+			error_mean = metrics.mean_squared_error(y, pred)
+			error_mae = metrics.mean_absolute_error(y, pred)
+			error_r2 = metrics.r2_score(y, pred)
+		else:
+			pred = model.predict_proba(x)
+			error = metrics.log_loss(y, pred)
+
+		errors.append(error_mean)
+		errors_mae.append(error_mae)
+		errors_r2.append(error_r2)
+		if i < x.shape[1]:
+			x[:, i] = hold
+		else:
+			x_weather[:, i - x.shape[1]] = hold
+
+
+
+
+	max_error = np.max(errors)
+	importance = [e / max_error for e in errors]
+
+	data = {'name': names, 'error': errors, 'error_mae': errors_mae, 'error_r2': errors_r2,'importance': importance}
+	result = pd.DataFrame(data, columns=['name', 'error', 'error_mae', 'error_r2', 'importance'])
+	result.sort_values(by=['importance'], ascending=[0], inplace=True)
+	result.reset_index(inplace=True, drop=True)
+	print(result.mean())
+	return result
+
+
+def run(model, load = True):
 	import pandas as pd
 
 	n_rows = None
@@ -21,10 +160,12 @@ def run(model):
 
 	print("____ Training model")
 
-	model.train_unsurpevised(x_train, x_train_weather, load=False)
+	model.train_unsurpevised(x_train, x_train_weather, load=load)
 	
 	
 	model.train_greed(x_train, x_train_weather, y_train, x_test, x_test_weather, y_test)
+
+	return model
 
 
 def cross(model):
